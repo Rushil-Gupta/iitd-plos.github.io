@@ -6,3 +6,8 @@ Downloading and installing perl modules:
 $ perl Makefile.PL
 $ make
 $ sudo make install
+
+
+Additional Features -
+1) Backspace
+2) arrow back and forward
