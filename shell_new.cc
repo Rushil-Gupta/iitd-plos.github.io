@@ -68,7 +68,10 @@ void shell_update(uint8_t scankey, shellstate_t& stateinout){
   if(stateinout.shellstate != 0x00){   //black background and foreground - computation going on
     pnt_cmd++;
     stateinout.curr_cmd[pnt_cmd].char_val = scankey;
-    // if(stateinout.pnt_cmd==(-1))  ///////////////////////////CHECK what should be the x and y for a new cmd;
+    if(stateinout.pnt_cmd==(-1)){
+      stateinout.curr_cmd[pnt_cmd].x = stateinout.output.x;  ///CHECK this -> output is not a struct yet
+      stateinout.curr_cmd[pnt_cmd].y = stateinout.output.y; ////CHECK here too
+    }
 
     stateinout.curr_cmd[pnt_cmd].x = stateinout.curr_cmd[pnt_cmd-1].x;
     stateinout.curr_cmd[pnt_cmd].y = stateinout.curr_cmd[pnt_cmd-1].y;
@@ -78,9 +81,8 @@ void shell_update(uint8_t scankey, shellstate_t& stateinout){
         pnt_buf++;
         stateinout.in_buf[pnt_buf] = stateinout.curr_cmd[i];
       }
-      shell_step(stateinout);
+      // shell_step(stateinout);
       //empty the curr_cmd buffer
-      pnt_cmd = -1;
     }
   }
   else{   
@@ -180,6 +182,7 @@ void shell_step(shellstate_t& stateinout){
     output = factorial(arg);
 
   stateinout.output = (uint64_t)(output);
+  stateinout.pnt_cmd = -1;
 }
 
 
