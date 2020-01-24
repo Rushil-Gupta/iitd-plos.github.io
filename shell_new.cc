@@ -1,6 +1,10 @@
 #include "shell.h"
 #include "vgatext.h"
 
+//buffer refresh
+//backspace implement
+//state_update
+
 //
 // initialize shellstate
 //
@@ -8,14 +12,23 @@ void shell_init(shellstate_t& state){
   state.num_keys = 100;
   state.shell_state = 0x07;
   state.output = 0x0000000000000000;
+  state.pnt_buf = -1;
+  state.pnt_cmd = -1;
   state.cursor_x = 0;
   state.cursor_y = 0;
   for(int i=0; i<256;i++){
     (state.in_buf[i]).char_val = 0x00;
     (state.in_buf[i]).x = 0;
     (state.in_buf[i]).y = 0;
+    if(i<50){
+      (state.curr_cmd[i]).char_val = 0x00;
+      (state.curr_cmd[i]).x = 0;
+      (state.curr_cmd[i]).y = 0;
+    }
   }
 }
+
+//0x00 - black; 0x07 - white, 0x01 - blue
 
 //
 // handle keyboard event.
@@ -51,7 +64,28 @@ void shell_init(shellstate_t& state){
 void shell_update(uint8_t scankey, shellstate_t& stateinout){
 
   hoh_debug("Got: "<<unsigned(scankey));
-  // if(stateinout.shellstate & 0x)
+  stateinout.num_keys++;
+  if(stateinout.shellstate != 0x00){   //black background and foreground - computation going on
+    pnt_cmd++;
+    stateinout.curr_cmd[pnt_cmd].char_val = scankey;
+    // if(stateinout.pnt_cmd==(-1))  ///////////////////////////CHECK what should be the x and y for a new cmd;
+
+    stateinout.curr_cmd[pnt_cmd].x = stateinout.curr_cmd[pnt_cmd-1].x;
+    stateinout.curr_cmd[pnt_cmd].y = stateinout.curr_cmd[pnt_cmd-1].y;
+    if(scankey == 0x1c){    //enter is pressed
+      //add to in_buf
+      for(int i=0; i<=pnt_cmd; i++){
+        pnt_buf++;
+        stateinout.in_buf[pnt_buf] = stateinout.curr_cmd[i];
+      }
+      shell_step(stateinout);
+      //empty the curr_cmd buffer
+      pnt_cmd = -1;
+    }
+  }
+  else{   
+    
+  }
 
 }
 
@@ -88,23 +122,29 @@ void shell_step(shellstate_t& stateinout){
   //
 
   //format:
-  //1) fi 4
-  //2) fa 10
+  //1) "=fi 4" then press enter
+  //2) "=fa 10" then press enter
 
   int i=0;
   int func_id=0; //1-> for fi, 2-> for fa
-  while(stateinout.input[i]!=0x0f){ //while not equal to space
+  while(stateinout.curr_cmd[i]!=0x0f){ //while not equal to space
     if(i==0){
-      if(stateinout.input[i]!=0x21){  //not equal to 'f'
-        stateinout.errorMsg = "ERROR: Not a valid function call. Only \"fi\" and \"fa\" allowed!";
+      if(stateinout.curr_cmd[i]!=0x0d){  //not equal to 'f'
+        stateinout.errorMsg = "ERROR: Not a valid function call. Only \"=fi\" and \"=fa\" allowed!";
         break;
       }  
     }
     else if(i==1){
-      if(stateinout.input[i]!=0x1e)  //its fact probably
+      if(stateinout.curr_cmd[i]!=0x21){  //not equal to 'f'
+        stateinout.errorMsg = "ERROR: Not a valid function call. Only \"=fi\" and \"=fa\" allowed!";
+        break;
+      }  
+    }
+    else if(i==2){
+      if(stateinout.curr_cmd[i]!=0x1e)  //its fact probably
         func_id = 2;
       
-      else if(stateinout.input[i]!=0x17)   //its fib
+      else if(stateinout.curr_cmd[i]!=0x17)   //its fib
         func_id = 1;
       else{
         stateinout.errorMsg = "ERROR: Not a valid function call. Only \"fi\" and \"fa\" allowed!";
@@ -118,10 +158,11 @@ void shell_step(shellstate_t& stateinout){
   if(func_id != 0){  //either fi or fa
     i++;
     int temp = 0;
-    while(stateinout.input[i]!=0x1c){ //enter
+    while(stateinout.curr_cmd[i]!=0x1c){ //enter
       temp = ((int)stateinout[i]);
       if(temp==1 || temp>11){
         stateinout.errorMsg = "ERROR: Not a valid argument. Only integers allowed!";
+        func_id = 0;
         break;
       }
       temp = temp%11;
