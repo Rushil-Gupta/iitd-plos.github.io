@@ -10,10 +10,13 @@ void shell_init(shellstate_t& state){
   state.output = " ";
   state.pnt_buf = 0;
   state.pnt_cmd = 0;
-  state.cursor_x = 0;
+  state.cursor_x = 2;
   state.cursor_y = 0;
   for(int i=0; i<50;i++){
-      (state.curr_cmd[i]).char_val = 0x00;
+      if(i == 0)
+	  		(state.curr_cmd[i]).char_val = 0x24;
+	  	else
+	  		(state.curr_cmd[i]).char_val = 0x00;
       (state.curr_cmd[i]).x = 0;
       (state.curr_cmd[i]).y = 0;
   }
@@ -182,38 +185,39 @@ void shell_update(uint8_t scankey, shellstate_t& stateinout){
   stateinout.num_keys++;
   stateinout.output = " ";
   stateinout.pnt_buf = 0;
-  if(stateinout.cursor_y > 19 && stateinout.cursor_x == 0){
+  if(stateinout.cursor_y > 19 && stateinout.cursor_x == 2){
 	  	stateinout.pnt_buf++;
 	  	stateinout.cursor_y = 0;
   }
   if(stateinout.pnt_cmd == 0){
 	  for(int i=0;i<50;i++){
-	  	(stateinout.curr_cmd[i]).char_val = 0x00;
-      (stateinout.curr_cmd[i]).x = 0;
-      (stateinout.curr_cmd[i]).y = 0;
+		  (stateinout.curr_cmd[i]).char_val = 0x00;
+	      (stateinout.curr_cmd[i]).x = 0;
+	      (stateinout.curr_cmd[i]).y = 0;
 	  }
+	  stateinout.cursor_x = 2;
   }
   if(scankey != 0x2a && scankey != 0x1d && scankey != 0x0f && scankey != 0x1a && scankey != 0x1b && scankey != 0x27 && scankey != 0x28){
-    stateinout.curr_cmd[stateinout.pnt_cmd].char_val = get_ascii(scankey);
-    stateinout.curr_cmd[stateinout.pnt_cmd].x = stateinout.cursor_x;
-    stateinout.curr_cmd[stateinout.pnt_cmd].y = stateinout.cursor_y;
+    stateinout.curr_cmd[stateinout.pnt_cmd+1].char_val = get_ascii(scankey);
+    stateinout.curr_cmd[stateinout.pnt_cmd+1].x = stateinout.cursor_x;
+    stateinout.curr_cmd[stateinout.pnt_cmd+1].y = stateinout.cursor_y;
     stateinout.pnt_cmd++;
     stateinout.cursor_x++;
     if(scankey == 0x1c){
       stateinout.shell_state = 0x01;
       stateinout.cursor_y++;
-      stateinout.cursor_x = 0;
+      stateinout.cursor_x = 2;
       stateinout.pnt_cmd = 0;
     }
   }
 }
 
 void factorial(int num, char* output){
-  long long ans = 1;
+  long ans = 1;
   for(int i=2; i<=num; i++){
     ans = ans*i;
   }
-  long long temp = ans;
+  long temp = ans;
   int size = 0;
   while(temp !=0){
   	temp = temp/10;
@@ -236,14 +240,12 @@ void nthPrime(int num, char* output)
   long prime = 2;
   int flag=1;
   while(1){
-  	// printf("%ld \n", prime);
   	flag = 1;
     for(int i=2; i<=prime/2; i++){
       if(prime%i==0){
         flag = 0;
         break;
       }
-      // printf("yo");
     }
     if(flag==1)
       count++;
@@ -306,44 +308,73 @@ void fibonacci(int num, char* output){
 // do computation
 //
 void shell_step(shellstate_t& stateinout){
+if(stateinout.shell_state != 0x01){
+	  stateinout.curr_cmd[0].char_val = 0x24;
+	  stateinout.curr_cmd[0].x = 0;
+	  stateinout.curr_cmd[0].y = stateinout.cursor_y;
+}
   if(stateinout.shell_state == 0x01){
-	  int i=0;
-	  int func_id=0; //1-> for fi, 2-> for fa
+	  int i=1;
+	  int func_id=0; 
+	  stateinout.output = "                                                                ";
 	  while(stateinout.curr_cmd[i].char_val!=0x20){ //while not equal to space
-	    if(i==0){
-	      if(stateinout.curr_cmd[i].char_val!=0x66){  //not equal to 'f'
-	        stateinout.output = "ERROR: Not a valid function call. CHALO CHALO Only \"=fi\" and \"=fa\" allowed!";
+	  	if(stateinout.curr_cmd[i].char_val == 0x03){
+	  		if(i!= 1)
+	  			stateinout.output = "ERROR: Not a valid function call. Only npr,fac and fib allowed!";
+	  		func_id = 0;
 	        break;
-	      }  
-	    }
-	    else if(i==1){
-	      if(stateinout.curr_cmd[i].char_val!=0x61 && stateinout.curr_cmd[i].char_val!=0x69){  //not equal to 'a' or 'i'
-	        stateinout.output = "ERROR: Not a valid function call. PLEASE CHAL NA Only \"=fi\" and \"=fa\" allowed!";
+	  	}
+	    if(i==1){
+	      if(stateinout.curr_cmd[i].char_val!=0x66 && stateinout.curr_cmd[i].char_val!=0x6e && stateinout.curr_cmd[i].char_val!=0x65){  //not equal to 'f'
+	        stateinout.output = "ERROR: Not a valid function call. Only npr,fac and fib allowed!";
 	        break;
 	      }  
 	    }
 	    else if(i==2){
-	      if(stateinout.curr_cmd[i-1].char_val == 0x61 && stateinout.curr_cmd[i].char_val == 0x63)  //its fac
+	      if(stateinout.curr_cmd[i].char_val!=0x61 && stateinout.curr_cmd[i].char_val!=0x69 && stateinout.curr_cmd[i].char_val!=0x70 && stateinout.curr_cmd[i].char_val!=0x63){  //not equal to 'a' or 'i'
+	        stateinout.output = "ERROR: Not a valid function call. Only npr,fac and fib allowed!";
+	        break;
+	      }  
+	    }
+	    else if(i==3){
+	      if(stateinout.curr_cmd[i-1].char_val == 0x61 && stateinout.curr_cmd[i].char_val == 0x63 && stateinout.curr_cmd[i-2].char_val == 0x66)  //its fac
 	        func_id = 2;
-	   	  else if(stateinout.curr_cmd[i-1].char_val == 0x69 && stateinout.curr_cmd[i].char_val == 0x62)   //its fib
+	   	  else if(stateinout.curr_cmd[i-1].char_val == 0x69 && stateinout.curr_cmd[i].char_val == 0x62 && stateinout.curr_cmd[i-2].char_val == 0x66)   //its fib
 	        func_id = 1;
+	      else if(stateinout.curr_cmd[i-1].char_val == 0x70 && stateinout.curr_cmd[i].char_val == 0x72 && stateinout.curr_cmd[i-2].char_val == 0x6e)   //its fib
+	        func_id = 3;
+	      else if(stateinout.curr_cmd[i-1].char_val == 0x63 && stateinout.curr_cmd[i].char_val == 0x68 && stateinout.curr_cmd[i-2].char_val == 0x65 && stateinout.curr_cmd[i+1].char_val == 0x6f)
+	      	func_id = 4;
 	      else{
-	        stateinout.output = "ERROR: Not a valid function call NAHI HAI BHAI. Only \"fi\" and \"fa\" allowed!";
+	        stateinout.output = "ERROR: Not a valid function call. Only npr,fac and fib allowed!";
 	        break;
 	      }
 	    }
 	    i++;
 	  }
-	  if(i == 3){
+	  if(i == 4 || (func_id == 4 && i == 5)){
 		  int arg = 0;
 		  if(func_id != 0){  //either fi or fa
 		    i++;
 		    int temp = 0;
+		    if(func_id == 4){
+		    	int start = i;
+		    	for(int j=0; j<64;j++){
+		    		stateinout.output[j] = ' ';
+		    	}
+		    	while(stateinout.curr_cmd[i].char_val!=0x03){ //enter
+		    		stateinout.output[i-start] = (char)(stateinout.curr_cmd[i].char_val);
+		    		i++;
+		    	}
+		    	hoh_debug("Ky a: " << stateinout.output);
+		    	stateinout.cursor_y++;
+		    	stateinout.shell_state = 0x07;
+		    	return;
+		    }
 		    while(stateinout.curr_cmd[i].char_val!=0x03){ //enter
 		      temp = ((int)(stateinout.curr_cmd[i].char_val) - 48);
 		      if(temp<0 || temp>9){
-		      	// hoh_debug()
-		        stateinout.output = "ERROR: Not a valid argument. Only integers allowed!";
+		        stateinout.output = "ERROR: Not a valid argument. Only integers allowed!";;
 		        func_id = 0;
 		        break;
 		      }
@@ -353,16 +384,18 @@ void shell_step(shellstate_t& stateinout){
 		  }  
 
 		  //now we have both func type and argument
-		  stateinout.output = "                                                                ";
+		  
 		  if(func_id == 1){
-		    nthPrime(arg,stateinout.output);
+		    fibonacci(arg,stateinout.output);
 		  }
 		  else if(func_id == 2){
 		    factorial(arg,stateinout.output);	
 		   }
+		   else if(func_id == 3){
+		   	nthPrime(arg,stateinout.output);	
+		   }
 	  }
 	  stateinout.cursor_y++;
-	  
 	  stateinout.shell_state = 0x07;
   }
   else
@@ -403,8 +436,6 @@ void shell_render(const shellstate_t& shell, renderstate_t& render){
   }
   render.cursor_x = shell.cursor_x;
   render.cursor_y = shell.cursor_y-1;
-  // etc.
-  //
 }
 
 
@@ -438,13 +469,11 @@ void render(const renderstate_t& state, int w, int h, addr_t vgatext_base){
   drawtext(1,1,out_str,80,0x00,0x07,80,25,vgatext_base);
   drawnumberinhex(15,1,(uint32_t)state.num_keys,80,0x00,0x07,80,25,vgatext_base);
   if(state.clear == 1)
-  	fillrect(1,2,78,24,0x00,0x00,80,25,vgatext_base);
+  	fillrect(1,2,79,24,0x00,0x00,80,25,vgatext_base);
   for(int i=0; state.out_buf[i].char_val != 0x00;i++){
-    // hoh_debug("Yeah: "<<unsigned(state.out_buf[0].char_val));
     vgatext::writechar((state.out_buf[i].y+3) * 80 + state.out_buf[i].x+2,state.out_buf[i].char_val,0x00,state.shell_state,vgatext_base);
   } 
   if((int)state.output[0] != 32){
-  	hoh_debug("Milega:"<<state.output);
   	drawtext(state.cursor_x+2,state.cursor_y+3,(const char*)state.output,80,0x00,state.shell_state,80,25,vgatext_base);
   }
 }
